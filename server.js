@@ -1,14 +1,14 @@
 import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
+import { exec } from 'child_process'; // For executing Python scripts
 import db from './config/db.js'; // Import the databaseconnection
-
-
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const scheme_api = process.env.SCHEME_API
 
 app.use(cors({
   origin: 'http://localhost:5173',  // Allow the frontend origin
@@ -102,7 +102,7 @@ WHERE
 // District level api
 
 app.get('/api/subdivisions', (req, res) => {
-  const districtId = req.query.districtId;
+  const districtId = req.query.districtId;  // Use req.query for GET requests
   if (!districtId) {
     return res.status(400).json({ error: "districtId is required" });
   }
@@ -128,6 +128,7 @@ app.get('/api/subdivisions', (req, res) => {
     res.json({ subdivisionList: results });
   });
 });
+
 
 app.get('/api/blocks', (req, res) => {
   const subdivisionId = req.query.subdivisionId;
@@ -156,6 +157,60 @@ app.get('/api/blocks', (req, res) => {
     console.log("results contian blocklist", results);
     res.json({ blockList: results });
   });
+});
+
+app.post('/getdata', async (req, res) => {
+  const url = scheme_api; // External API URL
+  const data = req.body; // Data sent from the frontend
+  console.log("datain", data);
+
+  try {
+    const fetchResponse = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+
+    const responseData = await fetchResponse.json();
+
+    res.status(fetchResponse.status).json({
+      status: "success",
+      data: responseData,
+    });
+  } catch (error) {
+    console.error("Error:", error.message);
+    res.status(500).json({
+      status: "error",
+      message: "Internal Server Error",
+    });
+  }
+});
+
+app.get('/getdata', async (req, res) => {
+  const url = scheme_api; // External API URL
+  const data = { blockpeople: "B1" }; // Hardcoded data to send in the request
+  try {
+    const fetchResponse = await fetch(url, {
+      method: 'POST', // Still using POST to interact with the external API
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+
+    const responseData = await fetchResponse.json();
+
+    console.log("API Response:", responseData); // Log the API response in the console
+
+    res.status(fetchResponse.status).json({
+      status: "success",
+      data: responseData,
+    });
+  } catch (error) {
+    console.error("Error:", error.message);
+    res.status(500).json({
+      status: "error",
+      message: "Internal Server Error",
+    });
+  }
 });
 
 
